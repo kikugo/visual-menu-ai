@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from src.vision import extract_menu_items_from_image, extract_menu_items_from_text
 from src.imaging import generate_images_for_menu
+from src.utils import display_visual_menu
 
 # Load environment variables from .env file
 load_dotenv()
@@ -66,6 +67,19 @@ def display_menu_item(item, col):
                     color: #ff6b35;
                     margin: 5px 0;
                 }
+                .tags-container {
+                    margin: 10px 0;
+                }
+                .tag {
+                    display: inline-block;
+                    background-color: #e8f5e9;
+                    color: #388e3c;
+                    padding: 3px 8px;
+                    border-radius: 15px;
+                    font-size: 0.8em;
+                    margin-right: 5px;
+                    margin-bottom: 5px;
+                }
                 .no-image-placeholder {
                     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
                     border-radius: 8px;
@@ -83,7 +97,7 @@ def display_menu_item(item, col):
             if item.get('image_bytes'):
                 try:
                     image = Image.open(io.BytesIO(item['image_bytes']))
-                    st.image(image, use_column_width=True, caption="")
+                    st.image(image, use_container_width=True, caption="")
                 except Exception as e:
                     st.markdown(
                         '<div class="no-image-placeholder">🖼️ Image Error<br><small>Could not load generated image</small></div>',
@@ -105,6 +119,17 @@ def display_menu_item(item, col):
             if description:
                 st.markdown(f'<div class="menu-item-description">{description}</div>', unsafe_allow_html=True)
             
+            # Display ingredients if available
+            ingredients = item.get('ingredients', [])
+            if ingredients:
+                st.markdown(f'<div class="menu-item-description"><i>Ingredients: {", ".join(ingredients)}</i></div>', unsafe_allow_html=True)
+
+            # Display tags if available
+            tags = item.get('tags', [])
+            if tags:
+                tags_html = "".join([f'<span class="tag">{tag}</span>' for tag in tags])
+                st.markdown(f'<div class="tags-container">{tags_html}</div>', unsafe_allow_html=True)
+
             # Display price if available and not empty
             price = item.get('price', '').strip()
             if price:
@@ -117,51 +142,77 @@ def display_menu_grid(menu_items_with_images):
         return
     
     st.subheader(f"🍽️ Visual Menu ({len(menu_items_with_images)} items)")
+
+    # --- Search and Filtering ---
+    # Define some popular tags for suggestions
+    SUGGESTED_TAGS = ["Spicy", "Vegetarian", "Chicken", "Seafood", "Sweet", "Pasta"]
+    
+    # Session state for search query
+    if 'search_query' not in st.session_state:
+        st.session_state.search_query = ""
+
+    # Display suggestion buttons
+    cols = st.columns(len(SUGGESTED_TAGS))
+    for i, tag in enumerate(SUGGESTED_TAGS):
+        if cols[i].button(tag, use_container_width=True):
+            st.session_state.search_query = tag
+    
+    # Search bar that updates session state
+    st.session_state.search_query = st.text_input(
+        "Search by dish, ingredient, or flavor...",
+        value=st.session_state.search_query,
+        placeholder="e.g., 'Spicy', 'Tomatoes', 'Pasta'"
+    ).lower()
+
+    # Filter menu items based on search query
+    if st.session_state.search_query:
+        search_query = st.session_state.search_query
+        filtered_items = [
+            item for item in menu_items_with_images
+            if search_query in item.get('name', '').lower() or \
+               search_query in item.get('description', '').lower() or \
+               any(search_query in ingredient.lower() for ingredient in item.get('ingredients', [])) or \
+               any(search_query in tag.lower() for tag in item.get('tags', []))
+        ]
+        if not filtered_items:
+            st.info(f"No dishes found matching '{search_query}'.")
+            return
+        menu_items_to_display = filtered_items
+    else:
+        menu_items_to_display = menu_items_with_images
     
     # Create responsive columns (2-4 columns based on screen size)
-    num_cols = min(3, len(menu_items_with_images))  # Max 3 columns for better readability
+    num_cols = min(3, len(menu_items_to_display))  # Max 3 columns for better readability
+    if num_cols == 0: return
     cols = st.columns(num_cols)
     
-    for i, item in enumerate(menu_items_with_images):
+    for i, item in enumerate(menu_items_to_display):
         col_index = i % num_cols
         display_menu_item(item, cols[col_index])
 
-async def process_menu_async(menu_items):
-    """Process menu items and generate images asynchronously with progress tracking."""
-    if not menu_items:
-        return []
-    
-    # Generate images for all menu items
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
-    status_text.text(f"🎨 Generating images for {len(menu_items)} menu items...")
-    progress_bar.progress(25)
-    
-    try:
-        # Use the new generate_images_for_menu function
-        menu_items_with_images = await generate_images_for_menu(menu_items)
+async def process_menu_and_generate_images(menu_items, st_container):
+    """
+    Validates menu items and then generates images, updating a container with progress.
+    """
+    with st_container:
+        # 1. Validate menu items
+        is_valid, message = validate_menu_items(menu_items)
+        if not is_valid:
+            st.error(message)
+            return None
         
-        progress_bar.progress(100)
+        st.success(message)
+
+        # 2. Generate images for valid items
+        with st.spinner("Generating incredible food images... 🍽️"):
+            visual_menu = generate_images_for_menu(menu_items)
         
-        # Calculate success rate
-        success_rate = len(menu_items_with_images) / len(menu_items) * 100 if menu_items else 0
-        
-        if menu_items_with_images:
-            if success_rate == 100:
-                status_text.text(f"✅ Generated {len(menu_items_with_images)} images successfully!")
-            else:
-                status_text.text(f"⚠️ Generated {len(menu_items_with_images)}/{len(menu_items)} images ({success_rate:.0f}% success rate)")
+        if visual_menu:
+            st.success("🎉 Visual menu created successfully!")
+            return visual_menu
         else:
-            status_text.text("❌ Failed to generate any images")
-        
-        return menu_items_with_images
-        
-    except Exception as e:
-        progress_bar.progress(0)
-        status_text.text(f"❌ Error during image generation: {str(e)}")
-        st.error("Image generation failed. Please check your API keys and try again.")
-        return []
+            st.error("Failed to generate any images. Please check your API keys and try again.")
+            return None
 
 def validate_menu_items(menu_items):
     """Validate extracted menu items and provide user feedback."""
@@ -230,101 +281,57 @@ def main():
             )
             
             if uploaded_file is not None:
-                try:
-                    # Display the uploaded image
-                    image = Image.open(uploaded_file)
-                    st.image(image, caption="Uploaded Menu", use_column_width=True)
+                image = Image.open(uploaded_file)
+                st.image(image, caption="Uploaded Menu", use_container_width=True)
+                
+                if st.button("🍽️ Create Visual Menu", type="primary"):
+                    st.session_state.clear()
+                    st.session_state.processing = True
                     
-                    if st.button("🔍 Extract Menu Items", type="primary"):
-                        with st.spinner("Extracting menu items from image..."):
-                            menu_items = extract_menu_items_from_image(image)
-                            
-                            # Validate extracted items
-                            is_valid, message = validate_menu_items(menu_items)
-                            
-                            if is_valid:
-                                st.success(message)
-                                # Store in session state for processing
-                                st.session_state['menu_items'] = menu_items
-                            else:
-                                st.error(message)
-                                
-                except Exception as e:
-                    st.error(f"Error processing image: {str(e)}")
-        
+                    with st.spinner("Reading the menu..."):
+                        menu_data = extract_menu_items_from_image(image)
+                    
+                    if menu_data:
+                        st.session_state.menu_items = menu_data
+                        # Automatically trigger image generation
+                        with st.spinner("Generating incredible food images... 🍽️"):
+                            st.session_state.visual_menu = generate_images_for_menu(st.session_state.menu_items)
+
+        # User input for pasting menu text
         elif input_method == "Paste Text":
             st.subheader("📝 Menu Text")
             menu_text = st.text_area(
                 "Paste your menu text here:",
                 height=200,
-                placeholder="Example:\nCaesar Salad - Fresh romaine lettuce with parmesan cheese - $12.99\nGrilled Salmon - Atlantic salmon with lemon butter sauce - $18.99"
+                placeholder="Example:\nMargherita Pizza - Tomato, Mozzarella, Basil - $15"
             )
             
-            if st.button("🔍 Extract Menu Items", type="primary"):
+            if st.button("🍽️ Create Visual Menu", type="primary"):
                 if menu_text.strip():
-                    with st.spinner("Extracting menu items from text..."):
-                        menu_items = extract_menu_items_from_text(menu_text)
-                        
-                        # Validate extracted items
-                        is_valid, message = validate_menu_items(menu_items)
-                        
-                        if is_valid:
-                            st.success(message)
-                            # Store in session state for processing
-                            st.session_state['menu_items'] = menu_items
-                        else:
-                            st.error(message)
+                    st.session_state.clear()
+                    st.session_state.processing = True
+                    
+                    with st.spinner("Reading the menu..."):
+                        menu_data = extract_menu_items_from_text(menu_text)
+                    
+                    if menu_data:
+                        st.session_state.menu_items = menu_data
+                        # Automatically trigger image generation
+                        with st.spinner("Generating incredible food images... 🍽️"):
+                            st.session_state.visual_menu = generate_images_for_menu(st.session_state.menu_items)
                 else:
                     st.warning("Please enter some menu text first.")
-    
-    # Main content area
-    if 'menu_items' in st.session_state and st.session_state['menu_items']:
-        menu_items = st.session_state['menu_items']
-        
-        # Show extracted menu items
-        with st.expander("📋 Extracted Menu Items", expanded=False):
-            for i, item in enumerate(menu_items, 1):
-                st.write(f"**{i}. {item.get('name', 'Unknown')}**")
-                if item.get('description'):
-                    st.write(f"   *{item['description']}*")
-                if item.get('price'):
-                    st.write(f"   💰 {item['price']}")
-                if item.get('prompt'):
-                    with st.expander(f"🎨 Image Prompt for {item.get('name', 'Unknown')}", expanded=False):
-                        st.write(item['prompt'])
-                st.divider()
-        
-        # Generate images button
-        if st.button("🎨 Generate Visual Menu", type="primary", use_container_width=True):
-            with st.spinner("Creating beautiful food images..."):
-                try:
-                    # Run async processing
-                    menu_items_with_images = asyncio.run(process_menu_async(menu_items))
-                    
-                    if menu_items_with_images:
-                        # Store results in session state
-                        st.session_state['menu_items_with_images'] = menu_items_with_images
-                        st.success("🎉 Visual menu created successfully!")
-                    else:
-                        st.error("Failed to generate any images. Please check your API keys and try again.")
-                        
-                except Exception as e:
-                    st.error(f"An error occurred during processing: {str(e)}")
-    
-    # Display visual menu if available
-    if 'menu_items_with_images' in st.session_state:
-        display_menu_grid(st.session_state['menu_items_with_images'])
-        
+
+    if "visual_menu" in st.session_state:
+        display_menu_grid(st.session_state.visual_menu)
+
         # Optional: Download button for results
-        if st.session_state['menu_items_with_images']:
+        if st.session_state.visual_menu:
             st.divider()
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
-                if st.button("🔄 Clear Results", use_container_width=True):
-                    # Clear session state
-                    for key in ['menu_items', 'menu_items_with_images']:
-                        if key in st.session_state:
-                            del st.session_state[key]
+                if st.button("🔄 Start Over", use_container_width=True):
+                    st.session_state.clear()
                     st.rerun()
 
 if __name__ == "__main__":

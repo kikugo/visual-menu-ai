@@ -15,6 +15,8 @@ For each menu item, extract:
 - "name": The exact name of the dish from the menu
 - "description": Brief description if available (empty string if none)
 - "price": Price as string if available (empty string if none)
+- "ingredients": A list of the main ingredients as strings. If none are listed, provide a reasonable guess based on the dish name.
+- "tags": A list of relevant tags describing flavor profiles (e.g., spicy, sweet, savory), main ingredients (e.g., chicken, beef, vegetarian), and potential cuisine types (e.g., italian, mexican).
 - "prompt": A detailed, appetizing image generation prompt
 
 For the image prompt, create a professional food photography description that includes:
@@ -34,6 +36,8 @@ Return ONLY a valid JSON array in this exact format:
     "name": "Dish name",
     "description": "Brief description or empty string",
     "price": "Price or empty string", 
+    "ingredients": ["ingredient1", "ingredient2", "ingredient3"],
+    "tags": ["flavor_tag", "ingredient_tag", "cuisine_tag"],
     "prompt": "Detailed image generation prompt"
   }
 ]
@@ -107,7 +111,7 @@ def extract_menu_items_from_image(image_data):
                 raise ValueError("Response is not a JSON array")
             
             for item in menu_items:
-                required_fields = ['name', 'description', 'price', 'prompt']
+                required_fields = ['name', 'description', 'price', 'ingredients', 'tags', 'prompt']
                 if not all(field in item for field in required_fields):
                     raise ValueError(f"Missing required fields in menu item: {item}")
             
@@ -166,7 +170,7 @@ def extract_menu_items_from_text(menu_text):
                 raise ValueError("Response is not a JSON array")
             
             for item in menu_items:
-                required_fields = ['name', 'description', 'price', 'prompt']
+                required_fields = ['name', 'description', 'price', 'ingredients', 'tags', 'prompt']
                 if not all(field in item for field in required_fields):
                     raise ValueError(f"Missing required fields in menu item: {item}")
             

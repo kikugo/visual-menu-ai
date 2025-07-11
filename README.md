@@ -123,7 +123,7 @@ menu_vision_ai/
 └── README.md               # This file
 ```
 
-## �� Configuration
+## 🔄 Configuration
 
 ### Environment Variables
 
@@ -194,3 +194,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Ready to bring your menus to life?** 🍽️ ✨ 
+
+## Future Improvements
+
+We have exciting plans to make Menu-Vision AI even smarter. Future versions may include:
+
+- **Advanced Semantic Search**: Instead of keyword matching, we plan to implement a true semantic search engine. This will allow the application to understand the *meaning* and *context* behind user queries.
+  - **How it will work**: By converting both the menu items and the user's query into vector embeddings, the app will be able to find the closest conceptual matches.
+  - **User benefit**: You could search for "something hearty for a cold day" and get recommendations for soups or rich pasta dishes, or search for "light and healthy" and get salads and grilled fish.
+
+- **Cuisine Style Detection**: Automatically identify the cuisine type (e.g., Italian, Mexican, Thai) and allow users to filter by it.
+
+- **Interactive Menu Analysis**: Provide aggregated insights from the menu, such as the ratio of vegetarian to non-vegetarian dishes or the most common ingredients.
+
+Stay tuned for more updates! 

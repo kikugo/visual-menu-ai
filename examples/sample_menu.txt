@@ -1,0 +1,25 @@
+SAMPLE RESTAURANT MENU
+
+APPETIZERS
+Caesar Salad - Fresh romaine lettuce, parmesan cheese, croutons with house caesar dressing - $12.99
+Buffalo Wings - 10 pieces of crispy chicken wings with buffalo sauce and blue cheese dip - $14.99
+Mozzarella Sticks - Breaded mozzarella cheese served with marinara sauce - $9.99
+Spinach Artichoke Dip - Creamy spinach and artichoke dip served with tortilla chips - $11.99
+
+MAIN COURSES
+Grilled Salmon - Fresh Atlantic salmon with lemon butter sauce, served with seasonal vegetables - $24.99
+Beef Burger - Angus beef patty with lettuce, tomato, pickles, and fries on brioche bun - $16.99
+Chicken Alfredo - Grilled chicken breast over fettuccine pasta in creamy alfredo sauce - $18.99
+Margherita Pizza - Traditional pizza with fresh mozzarella, tomatoes, and basil - $15.99
+BBQ Ribs - Slow-cooked pork ribs with house BBQ sauce, served with coleslaw and fries - $22.99
+
+DESSERTS
+Chocolate Lava Cake - Warm chocolate cake with molten center, served with vanilla ice cream - $8.99
+Tiramisu - Classic Italian dessert with coffee-soaked ladyfingers and mascarpone - $7.99
+Cheesecake - New York style cheesecake with berry compote - $6.99
+
+BEVERAGES
+Fresh Lemonade - $3.99
+Iced Tea - $2.99
+Coffee - $2.49
+Soda - $2.99 

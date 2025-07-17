@@ -73,7 +73,7 @@ Each extracted item includes:
 
 ## Testing
 
-The `examples` folder contains scripts to test the core API integrations independently from the main application.
+The `tests` folder contains scripts to test the core API integrations independently from the main application.
 
 ### Prerequisites
 
@@ -82,10 +82,10 @@ The `examples` folder contains scripts to test the core API integrations indepen
 
 ### Running the Tests
 
-To run the scripts, navigate to the `examples` directory and execute them:
+To run the scripts, navigate to the `tests` directory and execute them:
 
 ```bash
-cd examples
+cd tests
 
 # Test Google Gemini API (OCR and menu extraction)
 python test_gemini.py
@@ -97,9 +97,9 @@ python test_replicate.py
 ### Expected Results
 
 -   **Gemini Test**: Should show "✅ All Gemini tests passed!"
-    -   *Tests*: Basic text generation, menu extraction from text, and menu extraction from an image (if `example.jpeg` or similar is present).
+    -   *Tests*: Basic text generation, menu extraction from text, and menu extraction from an image (if `example.jpeg` or similar is present in examples folder).
 -   **Replicate Test**: Should show "✅ All Replicate tests passed!"
-    -   *Tests*: API connectivity and generation of several test images. Generated images are saved in the `examples` folder for you to review.
+    -   *Tests*: API connectivity and generation of several test images. Generated images are saved in the `tests` folder for you to review.
 
 If any tests fail, double-check your API keys in the `.env` file and your internet connection.
 
@@ -112,9 +112,10 @@ menu_vision_ai/
 │   ├── __init__.py        # Makes src a Python package
 │   ├── vision.py          # Gemini OCR & menu extraction  
 │   └── imaging.py         # Replicate image generation
-├── examples/
+├── tests/
 │   ├── test_gemini.py     # Gemini API tests
-│   ├── test_replicate.py  # Replicate API tests
+│   └── test_replicate.py  # Replicate API tests
+├── examples/
 │   ├── sample_menu.txt    # Sample menu text for input
 │   ├── example.jpeg       # Sample menu images
 │   ├── example2.jpeg
@@ -164,7 +165,7 @@ menu_vision_ai/
 ### Debug Mode
 Run tests to isolate issues:
 ```bash
-cd examples
+cd tests
 python test_gemini.py    # Test menu extraction
 python test_replicate.py # Test image generation
 ```

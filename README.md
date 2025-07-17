@@ -1,26 +1,26 @@
-# 📸 Menu-Vision AI
+# Menu-Vision AI
 
 Transform any restaurant menu into a visual feast using the power of AI! Upload a menu image or paste text, and watch as AI creates beautiful, realistic photos for each dish.
 
-![Menu-Vision AI Demo](https://img.shields.io/badge/AI-Powered-blue) ![Python](https://img.shields.io/badge/Python-3.8+-green) ![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red)
+![Python](https://img.shields.io/badge/Python-3.8+-green) ![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red)
 
-## ✨ Features
+## Features
 
-- 🔍 **Smart Menu Reading**: Advanced OCR using Google Gemini 2.5 Flash Lite
-- 🎨 **AI Image Generation**: Beautiful food photos via Google Imagen-4
-- 📱 **Dual Input Support**: Upload images or paste text menus
-- 🏷️ **Structured Extraction**: Name, description, price, and custom prompts
-- 🎯 **Responsive UI**: Clean, modern interface with error handling
-- ⚡ **Async Processing**: Fast concurrent image generation
+- **Smart Menu Reading**: Advanced OCR using Google Gemini 2.5 Flash Lite
+- **AI Image Generation**: Beautiful food photos via a model from Black Forest Labs
+- **Dual Input Support**: Upload images or paste text menus
+- **Structured Extraction**: Name, description, price, and custom prompts
+- **Clever Search**: AI-powered search to filter dishes by name, description, and AI-generated tags (e.g., "spicy", "vegetarian").
+- **Responsive UI**: Clean, modern interface with error handling
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: [Streamlit](https://streamlit.io/) - Interactive web interface
 - **OCR & Menu Parsing**: [Google Gemini 2.5 Flash Lite](https://deepmind.google/technologies/gemini/)
-- **Image Generation**: [Google Imagen-4](https://deepmind.google/technologies/imagen-4/) via [Replicate](https://replicate.com/)
+- **Image Generation**: [Black Forest Labs](https://replicate.com/black-forest-labs) model via [Replicate](https://replicate.com/)
 - **Language**: Python 3.8+
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Clone the Repository
 ```bash
@@ -51,12 +51,13 @@ streamlit run app.py
 
 Navigate to `http://localhost:8501` in your browser and start transforming menus!
 
-## 📖 How It Works
+## How It Works
 
-1. **📤 Upload/Input**: Choose to upload a menu image or paste menu text
-2. **🔍 Extract**: Gemini AI reads and structures the menu items
-3. **🎨 Generate**: Imagen-4 creates professional food photos for each dish
-4. **👁️ Display**: View your visual menu in a beautiful responsive grid
+1. **Upload/Input**: Choose to upload a menu image or paste menu text
+2. **Extract**: Gemini AI reads, structures, and generates tags for the menu items.
+3. **Generate**: The image generation model creates professional food photos for each dish.
+4. **Display**: View your visual menu in a beautiful responsive grid.
+5. **Search**: Use the search bar to filter dishes instantly by name, description, or tags.
 
 ### Menu Item Structure
 Each extracted item includes:
@@ -65,11 +66,12 @@ Each extracted item includes:
   "name": "Dish name",
   "description": "Brief description", 
   "price": "Price string",
+  "tags": ["tag1", "tag2"],
   "prompt": "Custom image generation prompt"
 }
 ```
 
-## 🧪 Testing
+## Testing
 
 The `examples` folder contains scripts to test the core API integrations independently from the main application.
 
@@ -101,7 +103,7 @@ python test_replicate.py
 
 If any tests fail, double-check your API keys in the `.env` file and your internet connection.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 menu_vision_ai/
@@ -120,10 +122,11 @@ menu_vision_ai/
 ├── requirements.txt        # Python dependencies
 ├── .env                    # API keys (create this yourself)
 ├── .gitignore              # Git ignore rules
+├── LICENSE                 # Project license
 └── README.md               # This file
 ```
 
-## 🔄 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -138,7 +141,7 @@ menu_vision_ai/
 - **Menu Prompt Template**: Update `SYSTEM_PROMPT` in `src/vision.py`
 - **UI Layout**: Customize grid columns in `app.py` `display_menu_grid()`
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -166,7 +169,7 @@ python test_gemini.py    # Test menu extraction
 python test_replicate.py # Test image generation
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -174,26 +177,16 @@ python test_replicate.py # Test image generation
 4. Push to branch (`git push origin feature/amazing-feature`) 
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Andrej Karpathy](https://karpathy.bearblog.dev/vibe-coding-menugen/) for the original MenuGen inspiration
 - [Nutlope/picMenu](https://github.com/Nutlope/picMenu) for the open-source reference
-- Google for Gemini and Imagen-4 APIs
-- Replicate for the API platform
-
-## 📊 Stats
-
-![GitHub issues](https://img.shields.io/github/issues/yourusername/menu-vision-ai)
-![GitHub stars](https://img.shields.io/github/stars/yourusername/menu-vision-ai)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/menu-vision-ai)
-
----
-
-**Ready to bring your menus to life?** 🍽️ ✨ 
+- Google for the Gemini API
+- Black Forest Labs & Replicate for the image generation API
 
 ## Future Improvements
 

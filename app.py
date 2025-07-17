@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 
 from src.vision import extract_menu_items_from_image, extract_menu_items_from_text
 from src.imaging import generate_images_for_menu
-from src.utils import display_visual_menu
 
 # Load environment variables from .env file
 load_dotenv()

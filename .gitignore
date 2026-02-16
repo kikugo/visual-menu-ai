@@ -8,6 +8,9 @@
 *.pem
 secrets.json
 
+# Test-generated images
+tests/test_*.png
+
 # Python cache
 __pycache__/
 *.pyc

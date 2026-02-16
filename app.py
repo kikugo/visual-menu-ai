@@ -1,6 +1,6 @@
 import streamlit as st
-import asyncio
 import io
+from collections import Counter
 from PIL import Image
 from dotenv import load_dotenv
 
@@ -26,7 +26,7 @@ def initialize_ui():
     
     Upload a menu image or paste menu text, and watch as AI creates beautiful, realistic photos for each dish.
     
-    • **Powered by**: Gemini 2.5 Flash Lite (OCR) + Google Imagen-4 (Image Generation)
+    • **Powered by**: Gemini 2.5 Flash Lite (OCR) + Imagen 4 Fast (Image Generation)
     • **Process**: Menu → Extract Items → Generate Food Photos → Visual Menu
     """)
     
@@ -134,6 +134,15 @@ def display_menu_item(item, col):
             if price:
                 st.markdown(f'<div class="menu-item-price">{price}</div>', unsafe_allow_html=True)
 
+def _get_top_tags(menu_items, max_tags=6):
+    """Extract the most common tags from menu items for search suggestions."""
+    all_tags = []
+    for item in menu_items:
+        all_tags.extend(item.get('tags', []))
+    # Get the most common tags, title-cased
+    tag_counts = Counter(tag.lower() for tag in all_tags)
+    return [tag.title() for tag, _ in tag_counts.most_common(max_tags)]
+
 def display_menu_grid(menu_items_with_images):
     """Display menu items in a responsive grid layout."""
     if not menu_items_with_images:
@@ -143,18 +152,19 @@ def display_menu_grid(menu_items_with_images):
     st.subheader(f"🍽️ Visual Menu ({len(menu_items_with_images)} items)")
 
     # --- Search and Filtering ---
-    # Define some popular tags for suggestions
-    SUGGESTED_TAGS = ["Spicy", "Vegetarian", "Chicken", "Seafood", "Sweet", "Pasta"]
+    # Dynamically derive suggested tags from the actual menu items
+    suggested_tags = _get_top_tags(menu_items_with_images)
     
     # Session state for search query
     if 'search_query' not in st.session_state:
         st.session_state.search_query = ""
 
-    # Display suggestion buttons
-    cols = st.columns(len(SUGGESTED_TAGS))
-    for i, tag in enumerate(SUGGESTED_TAGS):
-        if cols[i].button(tag, use_container_width=True):
-            st.session_state.search_query = tag
+    # Display suggestion buttons (only if we have tags)
+    if suggested_tags:
+        cols = st.columns(len(suggested_tags))
+        for i, tag in enumerate(suggested_tags):
+            if cols[i].button(tag, use_container_width=True):
+                st.session_state.search_query = tag
     
     # Search bar that updates session state
     st.session_state.search_query = st.text_input(
@@ -189,9 +199,9 @@ def display_menu_grid(menu_items_with_images):
         col_index = i % num_cols
         display_menu_item(item, cols[col_index])
 
-async def process_menu_and_generate_images(menu_items, st_container):
+def process_menu(menu_items, st_container):
     """
-    Validates menu items and then generates images, updating a container with progress.
+    Validates menu items and then generates images with progress feedback.
     """
     with st_container:
         # 1. Validate menu items
@@ -202,10 +212,20 @@ async def process_menu_and_generate_images(menu_items, st_container):
         
         st.success(message)
 
-        # 2. Generate images for valid items
-        with st.spinner("Generating incredible food images... 🍽️"):
-            visual_menu = generate_images_for_menu(menu_items)
+        # 2. Generate images with per-item progress
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        def on_progress(completed, total, item_name):
+            progress_bar.progress(completed / total)
+            status_text.text(f"Generated {completed}/{total}: {item_name}")
+
+        visual_menu = generate_images_for_menu(menu_items, on_progress=on_progress)
         
+        # Clear progress indicators
+        progress_bar.empty()
+        status_text.empty()
+
         if visual_menu:
             st.success("🎉 Visual menu created successfully!")
             return visual_menu
@@ -250,11 +270,6 @@ def main():
     else:
         api_status.append("✅ Gemini API key found")
     
-    if not os.getenv('REPLICATE_API_TOKEN'):
-        api_status.append("❌ REPLICATE_API_TOKEN missing")
-    else:
-        api_status.append("✅ Replicate API key found")
-    
     if len(api_status) > 0:
         with st.expander("🔑 API Key Status", expanded=False):
             for status in api_status:
@@ -268,8 +283,6 @@ def main():
             ["Upload Image", "Paste Text"],
             index=0
         )
-        
-        menu_items = []
         
         if input_method == "Upload Image":
             st.subheader("📸 Upload Menu Image")
@@ -292,9 +305,10 @@ def main():
                     
                     if menu_data:
                         st.session_state.menu_items = menu_data
-                        # Automatically trigger image generation
-                        with st.spinner("Generating incredible food images... 🍽️"):
-                            st.session_state.visual_menu = generate_images_for_menu(st.session_state.menu_items)
+                        # Generate images with progress
+                        st.session_state.visual_menu = generate_images_for_menu(
+                            st.session_state.menu_items
+                        )
 
         # User input for pasting menu text
         elif input_method == "Paste Text":
@@ -315,9 +329,10 @@ def main():
                     
                     if menu_data:
                         st.session_state.menu_items = menu_data
-                        # Automatically trigger image generation
-                        with st.spinner("Generating incredible food images... 🍽️"):
-                            st.session_state.visual_menu = generate_images_for_menu(st.session_state.menu_items)
+                        # Generate images with progress
+                        st.session_state.visual_menu = generate_images_for_menu(
+                            st.session_state.menu_items
+                        )
                 else:
                     st.warning("Please enter some menu text first.")
 
@@ -334,4 +349,4 @@ def main():
                     st.rerun()
 
 if __name__ == "__main__":
-    main() 
+    main()

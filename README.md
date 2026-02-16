@@ -7,24 +7,27 @@ Transform any restaurant menu into a visual feast using the power of AI! Upload 
 ## Features
 
 - **Smart Menu Reading**: Advanced OCR using Google Gemini 2.5 Flash Lite
-- **AI Image Generation**: Beautiful food photos via a model from Black Forest Labs
+- **AI Image Generation**: Beautiful food photos via Google Imagen 4 Fast
+- **Concurrent Processing**: Images generated in parallel for faster results
 - **Dual Input Support**: Upload images or paste text menus
-- **Structured Extraction**: Name, description, price, and custom prompts
-- **Clever Search**: AI-powered search to filter dishes by name, description, and AI-generated tags (e.g., "spicy", "vegetarian").
+- **Structured Extraction**: Name, description, price, ingredients, tags, and custom prompts
+- **Smart Search**: Filter dishes by name, description, ingredients, or AI-generated tags (e.g., "spicy", "vegetarian")
 - **Responsive UI**: Clean, modern interface with error handling
 
 ## Tech Stack
 
-- **Frontend**: [Streamlit](https://streamlit.io/) - Interactive web interface
-- **OCR & Menu Parsing**: [Google Gemini 2.5 Flash Lite](https://deepmind.google/technologies/gemini/)
-- **Image Generation**: [Black Forest Labs](https://replicate.com/black-forest-labs) model via [Replicate](https://replicate.com/)
+- **Frontend**: [Streamlit](https://streamlit.io/) — Interactive web interface
+- **OCR & Menu Parsing**: [Google Gemini 2.5 Flash Lite](https://deepmind.google/technologies/gemini/) via `google-genai` SDK
+- **Image Generation**: [Google Imagen 4 Fast](https://deepmind.google/technologies/imagen/) via `google-genai` SDK
 - **Language**: Python 3.8+
+
+> **Note**: This project uses a single API provider (Google) for both OCR and image generation, keeping the architecture simple and the setup minimal — only one API key needed.
 
 ## Quick Start
 
 ### 1. Clone the Repository
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/kikugo/visual-menu-ai.git
 cd menu_vision_ai
 ```
 
@@ -33,16 +36,14 @@ cd menu_vision_ai
 pip install -r requirements.txt
 ```
 
-### 3. Set Up API Keys
+### 3. Set Up API Key
 Create a `.env` file in the project root:
 ```env
 GOOGLE_API_KEY="your_gemini_api_key_here"
-REPLICATE_API_TOKEN="your_replicate_api_token_here"
 ```
 
-**Get your API keys:**
-- 🔗 [Google Gemini API Key](https://makersuite.google.com/app/apikey)
-- 🔗 [Replicate API Token](https://replicate.com/account/api-tokens)
+**Get your API key:**
+- 🔗 [Google Gemini API Key](https://aistudio.google.com/app/apikey) (free tier available)
 
 ### 4. Run the Application
 ```bash
@@ -54,10 +55,10 @@ Navigate to `http://localhost:8501` in your browser and start transforming menus
 ## How It Works
 
 1. **Upload/Input**: Choose to upload a menu image or paste menu text
-2. **Extract**: Gemini AI reads, structures, and generates tags for the menu items.
-3. **Generate**: The image generation model creates professional food photos for each dish.
-4. **Display**: View your visual menu in a beautiful responsive grid.
-5. **Search**: Use the search bar to filter dishes instantly by name, description, or tags.
+2. **Extract**: Gemini AI reads, structures, and generates tags for the menu items
+3. **Generate**: Imagen 4 Fast creates professional food photos for each dish concurrently
+4. **Display**: View your visual menu in a beautiful responsive grid
+5. **Search**: Use the search bar to filter dishes instantly by name, description, ingredients, or tags
 
 ### Menu Item Structure
 Each extracted item includes:
@@ -66,6 +67,7 @@ Each extracted item includes:
   "name": "Dish name",
   "description": "Brief description", 
   "price": "Price string",
+  "ingredients": ["ingredient1", "ingredient2"],
   "tags": ["tag1", "tag2"],
   "prompt": "Custom image generation prompt"
 }
@@ -77,12 +79,10 @@ The `tests` folder contains scripts to test the core API integrations independen
 
 ### Prerequisites
 
-1.  Make sure you have set up your `.env` file in the project root with your API keys.
+1.  Make sure you have set up your `.env` file in the project root with your API key.
 2.  Ensure all dependencies are installed: `pip install -r requirements.txt`
 
 ### Running the Tests
-
-To run the scripts, navigate to the `tests` directory and execute them:
 
 ```bash
 cd tests
@@ -90,18 +90,18 @@ cd tests
 # Test Google Gemini API (OCR and menu extraction)
 python test_gemini.py
 
-# Test Replicate API (Image generation)
-python test_replicate.py
+# Test Imagen 4 API (Image generation)
+python test_imagen.py
 ```
 
 ### Expected Results
 
 -   **Gemini Test**: Should show "✅ All Gemini tests passed!"
     -   *Tests*: Basic text generation, menu extraction from text, and menu extraction from an image (if `example.jpeg` or similar is present in examples folder).
--   **Replicate Test**: Should show "✅ All Replicate tests passed!"
+-   **Imagen Test**: Should show "✅ All Imagen tests passed!"
     -   *Tests*: API connectivity and generation of several test images. Generated images are saved in the `tests` folder for you to review.
 
-If any tests fail, double-check your API keys in the `.env` file and your internet connection.
+If any tests fail, double-check your API key in the `.env` file and your internet connection.
 
 ## Project Structure
 
@@ -111,17 +111,17 @@ menu_vision_ai/
 ├── src/
 │   ├── __init__.py        # Makes src a Python package
 │   ├── vision.py          # Gemini OCR & menu extraction  
-│   └── imaging.py         # Replicate image generation
+│   └── imaging.py         # Imagen 4 image generation
 ├── tests/
 │   ├── test_gemini.py     # Gemini API tests
-│   └── test_replicate.py  # Replicate API tests
+│   └── test_imagen.py     # Imagen 4 API tests
 ├── examples/
 │   ├── sample_menu.txt    # Sample menu text for input
 │   ├── example.jpeg       # Sample menu images
 │   ├── example2.jpeg
 │   └── example3.jpeg
 ├── requirements.txt        # Python dependencies
-├── .env                    # API keys (create this yourself)
+├── .env                    # API key (create this yourself)
 ├── .gitignore              # Git ignore rules
 ├── LICENSE                 # Project license
 └── README.md               # This file
@@ -133,14 +133,14 @@ menu_vision_ai/
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `GOOGLE_API_KEY` | Google Gemini API key | ✅ Yes |
-| `REPLICATE_API_TOKEN` | Replicate API token | ✅ Yes |
+| `GOOGLE_API_KEY` | Google Gemini / Imagen API key | ✅ Yes |
 
 ### Customization
 
 - **Image Aspect Ratio**: Modify in `src/imaging.py` (default: 1:1 for food photos)
 - **Menu Prompt Template**: Update `SYSTEM_PROMPT` in `src/vision.py`
 - **UI Layout**: Customize grid columns in `app.py` `display_menu_grid()`
+- **Concurrency**: Adjust `max_workers` in `src/imaging.py` (default: 5)
 
 ## Troubleshooting
 
@@ -151,9 +151,9 @@ menu_vision_ai/
 - Check API key format and validity
 
 **"Image generation failed"**  
-- Confirm Replicate API token is correct
+- Confirm your Google API key has Imagen 4 access enabled
 - Check internet connection
-- Verify API service status
+- Verify API service status at [Google AI Studio](https://aistudio.google.com/)
 
 **"Menu extraction failed"**
 - Try a clearer image or better formatted text
@@ -166,8 +166,8 @@ menu_vision_ai/
 Run tests to isolate issues:
 ```bash
 cd tests
-python test_gemini.py    # Test menu extraction
-python test_replicate.py # Test image generation
+python test_gemini.py   # Test menu extraction
+python test_imagen.py   # Test image generation
 ```
 
 ## Contributing
@@ -186,8 +186,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Andrej Karpathy](https://karpathy.bearblog.dev/vibe-coding-menugen/) for the original MenuGen inspiration
 - [Nutlope/picMenu](https://github.com/Nutlope/picMenu) for the open-source reference
-- Google for the Gemini API
-- Black Forest Labs & Replicate for the image generation API
+- Google for the Gemini and Imagen APIs
 
 ## Future Improvements
 

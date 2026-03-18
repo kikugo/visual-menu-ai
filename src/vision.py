@@ -53,18 +53,17 @@ Important rules:
 - Return ONLY the JSON array, no markdown formatting or additional text
 """
 
-def extract_menu_items_from_image(image_data):
+def _extract_menu_items(contents):
     """
-    Extracts menu items from an uploaded image using Google Gemini 2.5 Flash.
+    Internal helper to call the Gemini API and extract menu items.
     
     Args:
-        image_data: PIL Image object or image bytes
+        contents: The contents to send to the Gemini API (list or string).
         
     Returns:
-        list: List of dictionaries containing name, description, price, and prompt for each menu item
+        list: List of dictionaries containing menu items, or empty list on failure.
     """
     try:
-        # Configure the API
         api_key = os.getenv('GOOGLE_API_KEY')
         if not api_key:
             raise ValueError("Google API Key not found. Please set the GOOGLE_API_KEY environment variable.")
@@ -74,7 +73,7 @@ def extract_menu_items_from_image(image_data):
         # Generate response using Gemini 2.5 Flash with structured JSON output
         response = client.models.generate_content(
             model='gemini-2.5-flash',
-            contents=[SYSTEM_PROMPT, image_data],
+            contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json"
             )
@@ -104,6 +103,18 @@ def extract_menu_items_from_image(image_data):
         print(f"Error extracting menu items: {e}")
         return []
 
+def extract_menu_items_from_image(image_data):
+    """
+    Extracts menu items from an uploaded image using Google Gemini 2.5 Flash.
+    
+    Args:
+        image_data: PIL Image object or image bytes
+        
+    Returns:
+        list: List of dictionaries containing name, description, price, and prompt for each menu item
+    """
+    return _extract_menu_items([SYSTEM_PROMPT, image_data])
+
 def extract_menu_items_from_text(menu_text):
     """
     Extracts menu items from plain text using Google Gemini 2.5 Flash.
@@ -114,51 +125,5 @@ def extract_menu_items_from_text(menu_text):
     Returns:
         list: List of dictionaries containing name, description, price, and prompt for each menu item
     """
-    try:
-        # Configure the API
-        api_key = os.getenv('GOOGLE_API_KEY')
-        if not api_key:
-            raise ValueError("Google API Key not found. Please set the GOOGLE_API_KEY environment variable.")
-        
-        client = genai.Client(api_key=api_key)
-        
-        # Create prompt for text-based menu
-        text_prompt = f"""
-        {SYSTEM_PROMPT}
-        
-        Here is the menu text to analyze:
-        {menu_text}
-        """
-        
-        # Generate response using Gemini 2.5 Flash with structured JSON output
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=text_prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json"
-            )
-        )
-        
-        # Parse the JSON response
-        try:
-            menu_items = json.loads(response.text)
-            
-            # Validate the structure
-            if not isinstance(menu_items, list):
-                raise ValueError("Response is not a JSON array")
-            
-            for item in menu_items:
-                required_fields = ['name', 'description', 'price', 'ingredients', 'tags', 'prompt']
-                if not all(field in item for field in required_fields):
-                    raise ValueError(f"Missing required fields in menu item: {item}")
-            
-            return menu_items
-            
-        except json.JSONDecodeError as e:
-            print(f"Failed to parse JSON response: {e}")
-            print(f"Raw response: {response.text}")
-            return []
-            
-    except Exception as e:
-        print(f"Error extracting menu items from text: {e}")
-        return [] 
+    text_prompt = f"{SYSTEM_PROMPT}\n\nHere is the menu text to analyze:\n{menu_text}"
+    return _extract_menu_items(text_prompt) 

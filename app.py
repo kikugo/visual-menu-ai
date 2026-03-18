@@ -26,7 +26,7 @@ def initialize_ui():
     
     Upload a menu image or paste menu text, and watch as AI creates beautiful, realistic photos for each dish.
     
-    • **Powered by**: Gemini 2.5 Flash Lite (OCR) + Imagen 4 Fast (Image Generation)
+    • **Powered by**: Gemini 2.5 Flash (OCR) + Imagen 4 Fast (Image Generation)
     • **Process**: Menu → Extract Items → Generate Food Photos → Visual Menu
     """)
     

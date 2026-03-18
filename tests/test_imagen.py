@@ -56,7 +56,7 @@ def test_imagen_simple_generation():
         print("⏳ This may take a few seconds...")
 
         response = client.models.generate_images(
-            model='imagen-4-fast-generate-001',
+            model='imagen-4.0-fast-generate-001',
             prompt=prompt,
             config=types.GenerateImagesConfig(
                 number_of_images=1,
@@ -109,7 +109,7 @@ def test_imagen_food_generation():
         print("⏳ This may take a few seconds...")
 
         response = client.models.generate_images(
-            model='imagen-4-fast-generate-001',
+            model='imagen-4.0-fast-generate-001',
             prompt=food_prompt,
             config=types.GenerateImagesConfig(
                 number_of_images=1,
@@ -167,7 +167,7 @@ def test_imagen_multiple_items():
 
             try:
                 response = client.models.generate_images(
-                    model='imagen-4-fast-generate-001',
+                    model='imagen-4.0-fast-generate-001',
                     prompt=item['prompt'],
                     config=types.GenerateImagesConfig(
                         number_of_images=1,

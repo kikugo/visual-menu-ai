@@ -36,7 +36,7 @@ def generate_image(menu_item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
         # Generate image using Imagen 4 Fast
         response = client.models.generate_images(
-            model='imagen-4-fast-generate-001',
+            model='imagen-4.0-fast-generate-001',
             prompt=prompt,
             config=types.GenerateImagesConfig(
                 number_of_images=1,

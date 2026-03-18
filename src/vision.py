@@ -1,6 +1,7 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 # Enhanced system prompt to guide the AI model in extracting menu items and generating image prompts
 SYSTEM_PROMPT = """
@@ -52,30 +53,9 @@ Important rules:
 - Return ONLY the JSON array, no markdown formatting or additional text
 """
 
-def clean_json_response(response_text):
-    """
-    Clean the response text to extract valid JSON from markdown code blocks or other formatting.
-    """
-    # Remove common markdown code block formatting
-    cleaned = response_text.strip()
-    
-    # Remove ```json and ``` markers
-    if cleaned.startswith('```json'):
-        cleaned = cleaned[7:]  # Remove ```json
-    elif cleaned.startswith('```'):
-        cleaned = cleaned[3:]  # Remove ```
-    
-    if cleaned.endswith('```'):
-        cleaned = cleaned[:-3]  # Remove closing ```
-    
-    # Strip any remaining whitespace
-    cleaned = cleaned.strip()
-    
-    return cleaned
-
 def extract_menu_items_from_image(image_data):
     """
-    Extracts menu items from an uploaded image using Google Gemini 2.5 Flash Lite.
+    Extracts menu items from an uploaded image using Google Gemini 2.5 Flash.
     
     Args:
         image_data: PIL Image object or image bytes
@@ -89,22 +69,20 @@ def extract_menu_items_from_image(image_data):
         if not api_key:
             raise ValueError("Google API Key not found. Please set the GOOGLE_API_KEY environment variable.")
         
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
         
-        # Initialize the model - using Gemini 2.5 Flash Lite
-        model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-06-17')
-        
-        # Generate response
-        response = model.generate_content([
-            SYSTEM_PROMPT,
-            image_data
-        ])
+        # Generate response using Gemini 2.5 Flash with structured JSON output
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[SYSTEM_PROMPT, image_data],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
         
         # Parse the JSON response
         try:
-            # Clean the response text to handle markdown formatting
-            cleaned_response = clean_json_response(response.text)
-            menu_items = json.loads(cleaned_response)
+            menu_items = json.loads(response.text)
             
             # Validate the structure
             if not isinstance(menu_items, list):
@@ -120,7 +98,6 @@ def extract_menu_items_from_image(image_data):
         except json.JSONDecodeError as e:
             print(f"Failed to parse JSON response: {e}")
             print(f"Raw response: {response.text}")
-            print(f"Cleaned response: {clean_json_response(response.text)}")
             return []
             
     except Exception as e:
@@ -129,7 +106,7 @@ def extract_menu_items_from_image(image_data):
 
 def extract_menu_items_from_text(menu_text):
     """
-    Extracts menu items from plain text using Google Gemini 2.5 Flash Lite.
+    Extracts menu items from plain text using Google Gemini 2.5 Flash.
     
     Args:
         menu_text: String containing the menu text
@@ -143,10 +120,7 @@ def extract_menu_items_from_text(menu_text):
         if not api_key:
             raise ValueError("Google API Key not found. Please set the GOOGLE_API_KEY environment variable.")
         
-        genai.configure(api_key=api_key)
-        
-        # Initialize the model - using Gemini 2.5 Flash Lite
-        model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-06-17')
+        client = genai.Client(api_key=api_key)
         
         # Create prompt for text-based menu
         text_prompt = f"""
@@ -156,14 +130,18 @@ def extract_menu_items_from_text(menu_text):
         {menu_text}
         """
         
-        # Generate response
-        response = model.generate_content(text_prompt)
+        # Generate response using Gemini 2.5 Flash with structured JSON output
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=text_prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
         
         # Parse the JSON response
         try:
-            # Clean the response text to handle markdown formatting
-            cleaned_response = clean_json_response(response.text)
-            menu_items = json.loads(cleaned_response)
+            menu_items = json.loads(response.text)
             
             # Validate the structure
             if not isinstance(menu_items, list):
@@ -179,7 +157,6 @@ def extract_menu_items_from_text(menu_text):
         except json.JSONDecodeError as e:
             print(f"Failed to parse JSON response: {e}")
             print(f"Raw response: {response.text}")
-            print(f"Cleaned response: {clean_json_response(response.text)}")
             return []
             
     except Exception as e:

@@ -182,32 +182,49 @@ def display_menu_grid(menu_items_with_images):
     if not menu_items_with_images:
         st.warning("No menu items to display.")
         return
-    
-    st.subheader(f"🍽️ Visual Menu ({len(menu_items_with_images)} items)")
 
-    # --- Search and Filtering ---
-    # Dynamically derive suggested tags from the actual menu items
+    # --- Top bar: title, item count, and Start Over ---
+    top_left, top_right = st.columns([3, 1])
+    with top_left:
+        st.subheader(f"🍽️ Visual Menu")
+    with top_right:
+        st.markdown(
+            f"<div style='display:flex; align-items:center; justify-content:flex-end; gap:12px; padding-top:8px;'>"
+            f"<span style='color:#666; font-size:0.9em;'>{len(menu_items_with_images)} items</span>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+        if st.button("🔄 Start Over", width="stretch"):
+            st.session_state.clear()
+            st.rerun()
+
+    # --- Search bar + Ask the Menu button ---
     suggested_tags = _get_top_tags(menu_items_with_images)
-    
-    # Session state for search query
+
     if 'search_query' not in st.session_state:
         st.session_state.search_query = ""
+    if 'show_chat' not in st.session_state:
+        st.session_state.show_chat = False
 
-    # Display suggestion buttons (only if we have tags)
     if suggested_tags:
-        cols = st.columns(len(suggested_tags))
+        tag_cols = st.columns(len(suggested_tags))
         for i, tag in enumerate(suggested_tags):
-            if cols[i].button(tag, width="stretch"):
+            if tag_cols[i].button(tag, width="stretch"):
                 st.session_state.search_query = tag
-    
-    # Search bar that updates session state
-    st.session_state.search_query = st.text_input(
-        "Search by dish, ingredient, or flavor...",
-        value=st.session_state.search_query,
-        placeholder="e.g., 'Spicy', 'Tomatoes', 'Pasta'"
-    ).lower()
 
-    # Filter menu items based on search query
+    search_col, chat_btn_col = st.columns([5, 1])
+    with search_col:
+        st.session_state.search_query = st.text_input(
+            "Search by dish, ingredient, or flavor...",
+            value=st.session_state.search_query,
+            placeholder="e.g., 'Spicy', 'Tomatoes', 'Pasta'",
+            label_visibility="collapsed"
+        ).lower()
+    with chat_btn_col:
+        if st.button("💬 Ask the Menu", width="stretch"):
+            st.session_state.show_chat = not st.session_state.get('show_chat', False)
+
+    # --- Filter menu items ---
     if st.session_state.search_query:
         search_query = st.session_state.search_query
         filtered_items = [
@@ -223,12 +240,13 @@ def display_menu_grid(menu_items_with_images):
         menu_items_to_display = filtered_items
     else:
         menu_items_to_display = menu_items_with_images
-    
-    # Create responsive columns (2-4 columns based on screen size)
-    num_cols = min(3, len(menu_items_to_display))  # Max 3 columns for better readability
-    if num_cols == 0: return
+
+    # --- Grid ---
+    num_cols = min(3, len(menu_items_to_display))
+    if num_cols == 0:
+        return
     cols = st.columns(num_cols)
-    
+
     for i, item in enumerate(menu_items_to_display):
         col_index = i % num_cols
         display_menu_item(item, cols[col_index])
@@ -295,40 +313,53 @@ def validate_menu_items(menu_items):
 def main():
     """Main application function."""
     initialize_ui()
-    
-    # Check API keys on startup
+
     import os
-    api_status = []
-    if not os.getenv('GOOGLE_API_KEY'):
-        api_status.append("❌ GOOGLE_API_KEY missing")
-    else:
-        api_status.append("✅ Gemini API key found")
-    
-    if len(api_status) > 0:
-        with st.expander("🔑 API Key Status", expanded=False):
-            for status in api_status:
-                st.text(status)
-    
+
     # Sidebar for input options
     with st.sidebar:
+        # --- API Key Status ---
+        api_key = os.getenv('GOOGLE_API_KEY') or st.session_state.get('_runtime_api_key', '')
+        st.markdown("### 🔑 API Key")
+        if api_key:
+            st.success("✅ Gemini key detected", icon=None)
+        else:
+            st.error("❌ Key not found", icon=None)
+            new_key = st.text_input(
+                "Enter your Google API key:",
+                type="password",
+                placeholder="AIza...",
+                help="Your key is stored in session memory only — not saved to disk."
+            )
+            if new_key:
+                os.environ['GOOGLE_API_KEY'] = new_key
+                st.session_state['_runtime_api_key'] = new_key
+                st.rerun()
+
+        st.divider()
+
         st.header("📋 Menu Input")
         input_method = st.radio(
             "Choose input method:",
             ["Upload Image", "Paste Text"],
             index=0
         )
-        
+
         if input_method == "Upload Image":
-            st.subheader("📸 Upload Menu Image")
-            uploaded_file = st.file_uploader(
-                "Choose a menu image...",
+            st.subheader("📸 Upload Menu Pages")
+            uploaded_files = st.file_uploader(
+                "Upload one or more menu page images...",
                 type=['jpg', 'jpeg', 'png'],
-                help="Upload a clear image of a restaurant menu"
+                accept_multiple_files=True,
+                help="Upload up to 200 MB per file. Multiple pages supported."
             )
-            
-            if uploaded_file is not None:
-                image = Image.open(uploaded_file)
-                st.image(image, caption="Uploaded Menu", width="stretch")
+
+            if uploaded_files:
+                images = [Image.open(f) for f in uploaded_files]
+                # Show thumbnails in a compact row
+                thumb_cols = st.columns(min(len(images), 4))
+                for i, img in enumerate(images):
+                    thumb_cols[i % 4].image(img, caption=f"Page {i+1}", width="stretch")
                 
                 if st.button("🍽️ Create Visual Menu", type="primary"):
                     st.session_state.clear()
@@ -342,7 +373,10 @@ def main():
                     restaurant_style = ""
 
                     with ThreadPoolExecutor(max_workers=5) as executor:
-                        for style_or_empty, item in stream_menu_items([st.session_state.get('_SYSTEM_PROMPT', ''), image] if False else [__import__('src.vision', fromlist=['SYSTEM_PROMPT']).SYSTEM_PROMPT, image]):
+                        from src.vision import SYSTEM_PROMPT as _SP
+                        # Pass all page images in a single API call for full menu context
+                        contents = [_SP] + images
+                        for style_or_empty, item in stream_menu_items(contents):
                             if item is None:  # First yield: restaurant_style
                                 restaurant_style = style_or_empty
                                 if style_or_empty == "ERROR":
@@ -453,49 +487,36 @@ def main():
     if "visual_menu" in st.session_state:
         display_menu_grid(st.session_state.visual_menu)
 
-        if st.session_state.visual_menu:
+        # --- Inline Chat Panel (toggled by 'Ask the Menu' button in header) ---
+        if st.session_state.get('menu_items') and st.session_state.get('show_chat', False):
             st.divider()
-            col1, col2, col3 = st.columns([1, 1, 1])
-            with col2:
-                if st.button("🔄 Start Over", width="stretch"):
-                    st.session_state.clear()
-                    st.rerun()
+            st.markdown("#### 💬 Ask the Menu")
 
-        # --- Non-intrusive Chat Agent ---
-        # Only show after a menu has been loaded; starts fully collapsed
-        if st.session_state.get('menu_items'):
-            st.divider()
-            with st.expander("💬 Ask the Menu", expanded=False):
-                # Initialize agent once per menu session
-                if 'chat_agent' not in st.session_state:
-                    try:
-                        st.session_state.chat_agent = MenuChatAgent(
-                            menu_items=st.session_state.menu_items,
-                            restaurant_style=st.session_state.get('restaurant_style', '')
-                        )
-                        st.session_state.chat_history = []
-                    except Exception as e:
-                        st.error(f"Could not initialize chat agent: {e}")
+            if 'chat_agent' not in st.session_state:
+                try:
+                    st.session_state.chat_agent = MenuChatAgent(
+                        menu_items=st.session_state.menu_items,
+                        restaurant_style=st.session_state.get('restaurant_style', '')
+                    )
+                    st.session_state.chat_history = []
+                except Exception as e:
+                    st.error(f"Could not initialize chat agent: {e}")
 
-                if 'chat_agent' in st.session_state:
-                    # Render existing chat history
-                    for msg in st.session_state.get('chat_history', []):
-                        with st.chat_message(msg['role']):
-                            st.markdown(msg['content'])
+            if 'chat_agent' in st.session_state:
+                for msg in st.session_state.get('chat_history', []):
+                    with st.chat_message(msg['role']):
+                        st.markdown(msg['content'])
 
-                    # Input at the bottom
-                    user_q = st.chat_input("Ask anything about the menu…")
-                    if user_q:
-                        st.session_state.chat_history.append({'role': 'user', 'content': user_q})
-                        with st.chat_message('user'):
-                            st.markdown(user_q)
-
-                        with st.chat_message('assistant'):
-                            with st.spinner(""):
-                                reply = st.session_state.chat_agent.ask(user_q)
-                            st.markdown(reply)
-
-                        st.session_state.chat_history.append({'role': 'assistant', 'content': reply})
+                user_q = st.chat_input("Ask anything about the menu…")
+                if user_q:
+                    st.session_state.chat_history.append({'role': 'user', 'content': user_q})
+                    with st.chat_message('user'):
+                        st.markdown(user_q)
+                    with st.chat_message('assistant'):
+                        with st.spinner(""):
+                            reply = st.session_state.chat_agent.ask(user_q)
+                        st.markdown(reply)
+                    st.session_state.chat_history.append({'role': 'assistant', 'content': reply})
 
 if __name__ == "__main__":
     main()

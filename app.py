@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from src.vision import extract_menu_items_from_image, extract_menu_items_from_text, stream_menu_items
 from src.imaging import generate_images_for_menu, generate_image
+from src.chat import MenuChatAgent
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Load environment variables from .env file
@@ -448,7 +449,6 @@ def main():
     if "visual_menu" in st.session_state:
         display_menu_grid(st.session_state.visual_menu)
 
-        # Optional: Download button for results
         if st.session_state.visual_menu:
             st.divider()
             col1, col2, col3 = st.columns([1, 1, 1])
@@ -456,6 +456,42 @@ def main():
                 if st.button("🔄 Start Over", use_container_width=True):
                     st.session_state.clear()
                     st.rerun()
+
+        # --- Non-intrusive Chat Agent ---
+        # Only show after a menu has been loaded; starts fully collapsed
+        if st.session_state.get('menu_items'):
+            st.divider()
+            with st.expander("💬 Ask the Menu", expanded=False):
+                # Initialize agent once per menu session
+                if 'chat_agent' not in st.session_state:
+                    try:
+                        st.session_state.chat_agent = MenuChatAgent(
+                            menu_items=st.session_state.menu_items,
+                            restaurant_style=st.session_state.get('restaurant_style', '')
+                        )
+                        st.session_state.chat_history = []
+                    except Exception as e:
+                        st.error(f"Could not initialize chat agent: {e}")
+
+                if 'chat_agent' in st.session_state:
+                    # Render existing chat history
+                    for msg in st.session_state.get('chat_history', []):
+                        with st.chat_message(msg['role']):
+                            st.markdown(msg['content'])
+
+                    # Input at the bottom
+                    user_q = st.chat_input("Ask anything about the menu…")
+                    if user_q:
+                        st.session_state.chat_history.append({'role': 'user', 'content': user_q})
+                        with st.chat_message('user'):
+                            st.markdown(user_q)
+
+                        with st.chat_message('assistant'):
+                            with st.spinner(""):
+                                reply = st.session_state.chat_agent.ask(user_q)
+                            st.markdown(reply)
+
+                        st.session_state.chat_history.append({'role': 'assistant', 'content': reply})
 
 if __name__ == "__main__":
     main()

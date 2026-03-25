@@ -97,7 +97,8 @@ def _extract_menu_items(contents):
                 raise ValueError("Response is not a JSON array")
             
             for item in menu_items:
-                required_fields = ['name', 'description', 'price', 'ingredients', 'tags', 'prompt']
+                required_fields = ['name', 'description', 'price', 'ingredients', 'tags', 'prompt',
+                                   'estimated_calories', 'protein_g', 'carbs_g', 'fat_g']
                 if not all(field in item for field in required_fields):
                     raise ValueError(f"Missing required fields in menu item: {item}")
             

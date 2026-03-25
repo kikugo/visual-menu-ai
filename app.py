@@ -87,6 +87,24 @@ def display_menu_item(item, col):
                     color: #666;
                     font-style: italic;
                 }
+                .nutrition-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                    margin: 8px 0;
+                }
+                .nutrition-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 3px;
+                    background-color: #f0f4ff;
+                    color: #3b5bdb;
+                    padding: 3px 9px;
+                    border-radius: 20px;
+                    font-size: 0.78em;
+                    font-weight: 600;
+                    border: 1px solid #c5d2f6;
+                }
                 </style>
                 """,
                 unsafe_allow_html=True
@@ -122,6 +140,20 @@ def display_menu_item(item, col):
             ingredients = item.get('ingredients', [])
             if ingredients:
                 st.markdown(f'<div class="menu-item-description"><i>Ingredients: {", ".join(ingredients)}</i></div>', unsafe_allow_html=True)
+
+            # Display nutrition pills if available
+            calories = item.get('estimated_calories')
+            protein = item.get('protein_g')
+            carbs = item.get('carbs_g')
+            fat = item.get('fat_g')
+            if any(v is not None for v in [calories, protein, carbs, fat]):
+                pills = []
+                if calories is not None: pills.append(f'🔥 {calories} kcal')
+                if protein is not None:  pills.append(f'💪 {protein}g protein')
+                if carbs is not None:    pills.append(f'🌾 {carbs}g carbs')
+                if fat is not None:      pills.append(f'🫒 {fat}g fat')
+                pills_html = "".join([f'<span class="nutrition-pill">{p}</span>' for p in pills])
+                st.markdown(f'<div class="nutrition-container">{pills_html}</div>', unsafe_allow_html=True)
 
             # Display tags if available
             tags = item.get('tags', [])

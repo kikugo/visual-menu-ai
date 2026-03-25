@@ -208,18 +208,22 @@ def stream_menu_items(contents):
 
             if in_items_array:
                 for char in chunk.text:
-                    item_buffer += char
-                    if char == '{':
-                        brace_depth += 1
-                    elif char == '}':
-                        brace_depth -= 1
-                        if brace_depth == 0 and item_buffer.strip().startswith('{'):
-                            try:
-                                item = json.loads(item_buffer.strip().rstrip(','))
-                                yield "", item
-                            except json.JSONDecodeError:
-                                pass
-                            item_buffer = ""
+                    if brace_depth == 0 and char == '{':
+                        item_buffer = "{"
+                        brace_depth = 1
+                    elif brace_depth > 0:
+                        item_buffer += char
+                        if char == '{':
+                            brace_depth += 1
+                        elif char == '}':
+                            brace_depth -= 1
+                            if brace_depth == 0:
+                                try:
+                                    item = json.loads(item_buffer)
+                                    yield "", item
+                                except json.JSONDecodeError:
+                                    pass
+                                item_buffer = ""
 
     except Exception as e:
         print(f"Streaming error: {e}")

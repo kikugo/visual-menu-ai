@@ -4,8 +4,9 @@ from collections import Counter
 from PIL import Image
 from dotenv import load_dotenv
 
-from src.vision import extract_menu_items_from_image, extract_menu_items_from_text
-from src.imaging import generate_images_for_menu
+from src.vision import extract_menu_items_from_image, extract_menu_items_from_text, stream_menu_items
+from src.imaging import generate_images_for_menu, generate_image
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Load environment variables from .env file
 load_dotenv()
@@ -332,17 +333,55 @@ def main():
                     st.session_state.clear()
                     st.session_state.processing = True
 
-                    with st.spinner("Reading the menu..."):
-                        restaurant_style, menu_data = extract_menu_items_from_image(image)
+                    progress_bar = st.progress(0, text="Reading menu...")
+                    cols = st.columns(3)
+                    placeholders = []
+                    futures = []
+                    items_collected = []
+                    restaurant_style = ""
 
-                    if menu_data:
-                        st.session_state.menu_items = menu_data
-                        st.session_state.restaurant_style = restaurant_style
-                        # Generate images with progress
-                        st.session_state.visual_menu = generate_images_for_menu(
-                            st.session_state.menu_items,
-                            restaurant_style=st.session_state.restaurant_style
-                        )
+                    with ThreadPoolExecutor(max_workers=5) as executor:
+                        for style_or_empty, item in stream_menu_items([st.session_state.get('_SYSTEM_PROMPT', ''), image] if False else [__import__('src.vision', fromlist=['SYSTEM_PROMPT']).SYSTEM_PROMPT, image]):
+                            if item is None:  # First yield: restaurant_style
+                                restaurant_style = style_or_empty
+                                if style_or_empty == "ERROR":
+                                    st.error("Failed to read menu stream.")
+                                    break
+                                continue
+
+                            items_collected.append(item)
+                            idx = len(items_collected) - 1
+                            col = cols[idx % 3]
+                            ph = col.empty()
+                            ph.markdown(f"**{item.get('name', '')}** — ⏳ generating...")
+                            placeholders.append((ph, item))
+
+                            # Fire image gen immediately for this item
+                            f = executor.submit(generate_image, item, restaurant_style)
+                            futures.append((f, ph, item, idx))
+
+                        # Collect results as they finish
+                        total = len(futures)
+                        done = 0
+                        visual_menu = [None] * total
+                        for future, ph, item, idx in futures:
+                            try:
+                                result = future.result()
+                                if result:
+                                    visual_menu[idx] = result
+                                    image_obj = __import__('PIL.Image', fromlist=['Image']).open(__import__('io').BytesIO(result['image_bytes']))
+                                    ph.image(image_obj, use_container_width=True, caption=item.get('name', ''))
+                                else:
+                                    ph.warning(f"⚠️ No image for {item.get('name', '')}")
+                            except Exception as e:
+                                ph.warning(f"⚠️ Error: {e}")
+                            done += 1
+                            progress_bar.progress(done / max(total, 1), text=f"Generated {done}/{total} images")
+
+                    st.session_state.restaurant_style = restaurant_style
+                    st.session_state.menu_items = items_collected
+                    st.session_state.visual_menu = [v for v in visual_menu if v]
+                    progress_bar.empty()
 
         # User input for pasting menu text
         elif input_method == "Paste Text":
@@ -358,17 +397,51 @@ def main():
                     st.session_state.clear()
                     st.session_state.processing = True
 
-                    with st.spinner("Reading the menu..."):
-                        restaurant_style, menu_data = extract_menu_items_from_text(menu_text)
+                    progress_bar = st.progress(0, text="Reading menu...")
+                    cols_text = st.columns(3)
+                    futures_text = []
+                    items_text = []
+                    restaurant_style = ""
 
-                    if menu_data:
-                        st.session_state.menu_items = menu_data
-                        st.session_state.restaurant_style = restaurant_style
-                        # Generate images with progress
-                        st.session_state.visual_menu = generate_images_for_menu(
-                            st.session_state.menu_items,
-                            restaurant_style=st.session_state.restaurant_style
-                        )
+                    with ThreadPoolExecutor(max_workers=5) as executor:
+                        text_contents = f"{__import__('src.vision', fromlist=['SYSTEM_PROMPT']).SYSTEM_PROMPT}\n\nHere is the menu text to analyze:\n{menu_text}"
+                        for style_or_empty, item in stream_menu_items(text_contents):
+                            if item is None:
+                                restaurant_style = style_or_empty
+                                if style_or_empty == "ERROR":
+                                    st.error("Failed to read menu stream.")
+                                    break
+                                continue
+
+                            items_text.append(item)
+                            idx = len(items_text) - 1
+                            ph = cols_text[idx % 3].empty()
+                            ph.markdown(f"**{item.get('name', '')}** — ⏳ generating...")
+
+                            f = executor.submit(generate_image, item, restaurant_style)
+                            futures_text.append((f, ph, item, idx))
+
+                        total_t = len(futures_text)
+                        done_t = 0
+                        visual_menu_text = [None] * total_t
+                        for future, ph, item, idx in futures_text:
+                            try:
+                                result = future.result()
+                                if result:
+                                    visual_menu_text[idx] = result
+                                    image_obj = __import__('PIL.Image', fromlist=['Image']).open(__import__('io').BytesIO(result['image_bytes']))
+                                    ph.image(image_obj, use_container_width=True, caption=item.get('name', ''))
+                                else:
+                                    ph.warning(f"⚠️ No image for {item.get('name', '')}")
+                            except Exception as e:
+                                ph.warning(f"⚠️ Error: {e}")
+                            done_t += 1
+                            progress_bar.progress(done_t / max(total_t, 1), text=f"Generated {done_t}/{total_t} images")
+
+                    st.session_state.restaurant_style = restaurant_style
+                    st.session_state.menu_items = items_text
+                    st.session_state.visual_menu = [v for v in visual_menu_text if v]
+                    progress_bar.empty()
                 else:
                     st.warning("Please enter some menu text first.")
 

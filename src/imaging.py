@@ -13,13 +13,14 @@ def _get_client():
     return genai.Client(api_key=api_key)
 
 
-def generate_image(menu_item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def generate_image(menu_item: Dict[str, Any], restaurant_style: str = "") -> Optional[Dict[str, Any]]:
     """
     Generates an image for a menu item using Google Imagen 4 Fast.
-    
+
     Args:
         menu_item: Dictionary containing menu item data with 'name' and 'prompt'
-        
+        restaurant_style: Optional style string to enforce visual consistency across all dishes.
+
     Returns:
         Dictionary with menu item data plus 'image_bytes' field, or None if generation fails
     """
@@ -31,6 +32,10 @@ def generate_image(menu_item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if not prompt:
             print(f"No prompt found for menu item: {menu_item.get('name', 'Unknown')}")
             return None
+
+        # Append restaurant style for visual consistency across all generated images
+        if restaurant_style:
+            prompt = f"{prompt} Shot in the style of: {restaurant_style}."
 
         print(f"🎨 Generating image for: {menu_item.get('name', 'Unknown')}")
 
@@ -61,15 +66,16 @@ def generate_image(menu_item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return None
 
 
-def generate_images_for_menu(menu_items: list, on_progress: Optional[Callable] = None) -> list:
+def generate_images_for_menu(menu_items: list, restaurant_style: str = "", on_progress: Optional[Callable] = None) -> list:
     """
     Generates images for all menu items concurrently.
-    
+
     Args:
         menu_items: List of menu item dictionaries
-        on_progress: Optional callback called with (completed_count, total_count, item_name) 
+        restaurant_style: Style string injected into every prompt for visual consistency
+        on_progress: Optional callback called with (completed_count, total_count, item_name)
                      after each image completes
-    
+
     Returns:
         List of menu item dictionaries with image data
     """
@@ -77,16 +83,16 @@ def generate_images_for_menu(menu_items: list, on_progress: Optional[Callable] =
         return []
 
     total = len(menu_items)
-    print(f"🚀 Starting image generation for {total} menu items...")
+    print(f"🚀 Starting image generation for {total} menu items (style: '{restaurant_style}')...")
 
     successful_results = []
     completed = 0
 
     # Use ThreadPoolExecutor for concurrent generation
     with ThreadPoolExecutor(max_workers=5) as executor:
-        # Submit all tasks
+        # Submit all tasks, passing restaurant_style to each
         future_to_item = {
-            executor.submit(generate_image, item): item
+            executor.submit(generate_image, item, restaurant_style): item
             for item in menu_items
         }
 
@@ -94,7 +100,7 @@ def generate_images_for_menu(menu_items: list, on_progress: Optional[Callable] =
         for future in as_completed(future_to_item):
             completed += 1
             item = future_to_item[future]
-            
+
             try:
                 result = future.result()
                 if result:

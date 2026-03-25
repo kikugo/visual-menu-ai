@@ -331,15 +331,17 @@ def main():
                 if st.button("🍽️ Create Visual Menu", type="primary"):
                     st.session_state.clear()
                     st.session_state.processing = True
-                    
+
                     with st.spinner("Reading the menu..."):
-                        menu_data = extract_menu_items_from_image(image)
-                    
+                        restaurant_style, menu_data = extract_menu_items_from_image(image)
+
                     if menu_data:
                         st.session_state.menu_items = menu_data
+                        st.session_state.restaurant_style = restaurant_style
                         # Generate images with progress
                         st.session_state.visual_menu = generate_images_for_menu(
-                            st.session_state.menu_items
+                            st.session_state.menu_items,
+                            restaurant_style=st.session_state.restaurant_style
                         )
 
         # User input for pasting menu text
@@ -355,15 +357,17 @@ def main():
                 if menu_text.strip():
                     st.session_state.clear()
                     st.session_state.processing = True
-                    
+
                     with st.spinner("Reading the menu..."):
-                        menu_data = extract_menu_items_from_text(menu_text)
-                    
+                        restaurant_style, menu_data = extract_menu_items_from_text(menu_text)
+
                     if menu_data:
                         st.session_state.menu_items = menu_data
+                        st.session_state.restaurant_style = restaurant_style
                         # Generate images with progress
                         st.session_state.visual_menu = generate_images_for_menu(
-                            st.session_state.menu_items
+                            st.session_state.menu_items,
+                            restaurant_style=st.session_state.restaurant_style
                         )
                 else:
                     st.warning("Please enter some menu text first.")

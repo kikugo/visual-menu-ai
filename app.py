@@ -116,7 +116,7 @@ def display_menu_item(item, col):
             if item.get('image_bytes'):
                 try:
                     image = Image.open(io.BytesIO(item['image_bytes']))
-                    st.image(image, use_container_width=True, caption="")
+                    st.image(image, width="stretch", caption="")
                 except Exception as e:
                     st.markdown(
                         '<div class="no-image-placeholder">🖼️ Image Error<br><small>Could not load generated image</small></div>',
@@ -197,7 +197,7 @@ def display_menu_grid(menu_items_with_images):
     if suggested_tags:
         cols = st.columns(len(suggested_tags))
         for i, tag in enumerate(suggested_tags):
-            if cols[i].button(tag, use_container_width=True):
+            if cols[i].button(tag, width="stretch"):
                 st.session_state.search_query = tag
     
     # Search bar that updates session state
@@ -328,7 +328,7 @@ def main():
             
             if uploaded_file is not None:
                 image = Image.open(uploaded_file)
-                st.image(image, caption="Uploaded Menu", use_container_width=True)
+                st.image(image, caption="Uploaded Menu", width="stretch")
                 
                 if st.button("🍽️ Create Visual Menu", type="primary"):
                     st.session_state.clear()
@@ -371,10 +371,12 @@ def main():
                                 if result:
                                     visual_menu[idx] = result
                                     image_obj = __import__('PIL.Image', fromlist=['Image']).open(__import__('io').BytesIO(result['image_bytes']))
-                                    ph.image(image_obj, use_container_width=True, caption=item.get('name', ''))
+                                    ph.image(image_obj, width="stretch", caption=item.get('name', ''))
                                 else:
+                                    visual_menu[idx] = item
                                     ph.warning(f"⚠️ No image for {item.get('name', '')}")
                             except Exception as e:
+                                visual_menu[idx] = item
                                 ph.warning(f"⚠️ Error: {e}")
                             done += 1
                             progress_bar.progress(done / max(total, 1), text=f"Generated {done}/{total} images")
@@ -431,10 +433,12 @@ def main():
                                 if result:
                                     visual_menu_text[idx] = result
                                     image_obj = __import__('PIL.Image', fromlist=['Image']).open(__import__('io').BytesIO(result['image_bytes']))
-                                    ph.image(image_obj, use_container_width=True, caption=item.get('name', ''))
+                                    ph.image(image_obj, width="stretch", caption=item.get('name', ''))
                                 else:
+                                    visual_menu_text[idx] = item
                                     ph.warning(f"⚠️ No image for {item.get('name', '')}")
                             except Exception as e:
+                                visual_menu_text[idx] = item
                                 ph.warning(f"⚠️ Error: {e}")
                             done_t += 1
                             progress_bar.progress(done_t / max(total_t, 1), text=f"Generated {done_t}/{total_t} images")
@@ -453,7 +457,7 @@ def main():
             st.divider()
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
-                if st.button("🔄 Start Over", use_container_width=True):
+                if st.button("🔄 Start Over", width="stretch"):
                     st.session_state.clear()
                     st.rerun()
 

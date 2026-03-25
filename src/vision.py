@@ -19,6 +19,10 @@ For each menu item, extract:
 - "ingredients": A list of the main ingredients as strings. If none are listed, provide a reasonable guess based on the dish name.
 - "tags": A list of relevant tags describing flavor profiles (e.g., spicy, sweet, savory), main ingredients (e.g., chicken, beef, vegetarian), and potential cuisine types (e.g., italian, mexican).
 - "prompt": A detailed, appetizing image generation prompt
+- "estimated_calories": An integer estimate of the total calories for one serving of this dish.
+- "protein_g": An integer estimate of the protein in grams for one serving.
+- "carbs_g": An integer estimate of the carbohydrates in grams for one serving.
+- "fat_g": An integer estimate of the fat in grams for one serving.
 
 For the image prompt, create a professional food photography description that includes:
 - The dish name and key ingredients/components
@@ -36,10 +40,14 @@ Return ONLY a valid JSON array in this exact format:
   {
     "name": "Dish name",
     "description": "Brief description or empty string",
-    "price": "Price or empty string", 
+    "price": "Price or empty string",
     "ingredients": ["ingredient1", "ingredient2", "ingredient3"],
     "tags": ["flavor_tag", "ingredient_tag", "cuisine_tag"],
-    "prompt": "Detailed image generation prompt"
+    "prompt": "Detailed image generation prompt",
+    "estimated_calories": 650,
+    "protein_g": 35,
+    "carbs_g": 55,
+    "fat_g": 28
   }
 ]
 
@@ -50,6 +58,7 @@ Important rules:
 - If no description exists, leave as empty string
 - If no price exists, leave as empty string
 - Always include proper garnishing and presentation details in prompts
+- Nutrition estimates should be realistic based on typical restaurant portion sizes
 - Return ONLY the JSON array, no markdown formatting or additional text
 """
 

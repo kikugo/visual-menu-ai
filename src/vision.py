@@ -147,3 +147,80 @@ def extract_menu_items_from_text(menu_text):
     """
     text_prompt = f"{SYSTEM_PROMPT}\n\nHere is the menu text to analyze:\n{menu_text}"
     return _extract_menu_items(text_prompt)
+
+def stream_menu_items(contents):
+    """
+    Streams menu items one-by-one from Gemini as they are parsed.
+
+    Uses Gemini's streaming API to yield individual menu item dicts the moment
+    each one is complete, rather than waiting for the full response. This allows
+    image generation to start for item #1 while OCR is still reading item #2.
+
+    Args:
+        contents: The contents to send to the Gemini API (list or string).
+
+    Yields:
+        tuple: First yield is (restaurant_style: str, None).
+               Subsequent yields are ("", item: dict) for each parsed menu item.
+               Yields ("ERROR", None) if streaming fails.
+    """
+    import re
+
+    try:
+        api_key = os.getenv('GOOGLE_API_KEY')
+        if not api_key:
+            raise ValueError("Google API Key not found.")
+
+        client = genai.Client(api_key=api_key)
+
+        accumulated = ""
+        restaurant_style_yielded = False
+        restaurant_style = ""
+        item_buffer = ""
+        brace_depth = 0
+        in_items_array = False
+
+        for chunk in client.models.generate_content_stream(
+            model='gemini-2.5-flash',
+            contents=contents,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        ):
+            if not chunk.text:
+                continue
+            accumulated += chunk.text
+
+            # Extract restaurant_style as soon as it appears in the stream
+            if not restaurant_style_yielded:
+                style_match = re.search(r'"restaurant_style"\s*:\s*"([^"]*)"', accumulated)
+                if style_match:
+                    restaurant_style = style_match.group(1)
+                    yield restaurant_style, None
+                    restaurant_style_yielded = True
+
+            # Once we locate the "items" array, track individual object boundaries
+            if not in_items_array:
+                if '"items"' in accumulated and '[' in accumulated.split('"items"', 1)[1]:
+                    in_items_array = True
+                    after_items = accumulated.split('"items"', 1)[1]
+                    accumulated = after_items[after_items.index('[') + 1:]
+
+            if in_items_array:
+                for char in chunk.text:
+                    item_buffer += char
+                    if char == '{':
+                        brace_depth += 1
+                    elif char == '}':
+                        brace_depth -= 1
+                        if brace_depth == 0 and item_buffer.strip().startswith('{'):
+                            try:
+                                item = json.loads(item_buffer.strip().rstrip(','))
+                                yield "", item
+                            except json.JSONDecodeError:
+                                pass
+                            item_buffer = ""
+
+    except Exception as e:
+        print(f"Streaming error: {e}")
+        yield "ERROR", None

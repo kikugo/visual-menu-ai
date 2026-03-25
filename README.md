@@ -6,11 +6,13 @@ Transform any restaurant menu into a visual feast using the power of AI! Upload 
 
 ## Features
 
-- **Smart Menu Reading**: Advanced OCR using Google Gemini 2.5 Flash Lite
+- **Smart Menu Reading**: Advanced OCR using Google Gemini 2.5 Flash
 - **AI Image Generation**: Beautiful food photos via Google Imagen 4 Fast
-- **Concurrent Processing**: Images generated in parallel for faster results
+- **Interactive Chatbot**: "Ask the Menu" allows you to query dietary info, recommendations, and pairings directly from the menu text
+- **Nutrition Tracking**: Automatically estimates Calories, Protein, Carbs, and Fat metrics for each dish
+- **Visual Consistency**: Intelligently extracts the restaurant's vibe to generate a cohesive style across all images
+- **Streaming & Concurrency**: Streams OCR text for immediate feedback and generates images in parallel
 - **Dual Input Support**: Upload images or paste text menus
-- **Structured Extraction**: Name, description, price, ingredients, tags, and custom prompts
 - **Smart Search**: Filter dishes by name, description, ingredients, or AI-generated tags (e.g., "spicy", "vegetarian")
 - **Responsive UI**: Clean, modern interface with error handling
 

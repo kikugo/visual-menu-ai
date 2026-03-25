@@ -5,7 +5,7 @@ from google.genai import types
 
 # Enhanced system prompt to guide the AI model in extracting menu items and generating image prompts
 SYSTEM_PROMPT = """
-You are MenuVisionAI, an expert at reading restaurant menus and creating detailed food imagery prompts.
+You are MenuVision, an expert at reading restaurant menus and creating detailed food imagery prompts.
 
 Your task is to:
 1. Identify the overall aesthetic and style of the restaurant from the menu's design, name, and cuisine type

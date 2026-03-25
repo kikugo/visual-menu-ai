@@ -1,4 +1,4 @@
-# Menu-Vision AI
+# Menu-Vision
 
 Transform any restaurant menu into a visual feast using the power of AI! Upload a menu image or paste text, and watch as AI creates beautiful, realistic photos for each dish.
 
@@ -192,7 +192,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Future Improvements
 
-We have exciting plans to make Menu-Vision AI even smarter. Future versions may include:
+We have exciting plans to make Menu-Vision even smarter. Future versions may include:
 
 - **Advanced Semantic Search**: Instead of keyword matching, we plan to implement a true semantic search engine. This will allow the application to understand the *meaning* and *context* behind user queries.
   - **How it will work**: By converting both the menu items and the user's query into vector embeddings, the app will be able to find the closest conceptual matches.

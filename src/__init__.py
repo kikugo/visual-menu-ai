@@ -1,7 +1,7 @@
 """
-Menu-Vision AI Core Modules
+Menu-Vision Core Modules
 
-This package contains the core functionality for Menu-Vision AI:
+This package contains the core functionality for Menu-Vision:
 - vision.py: Google Gemini integration for menu OCR and extraction
 - imaging.py: Google Imagen 4 integration for food image generation
 """

@@ -15,14 +15,14 @@ load_dotenv()
 def initialize_ui():
     """Initializes the Streamlit page configuration and UI elements."""
     st.set_page_config(
-        page_title="Menu-Vision AI", 
+        page_title="Menu-Vision", 
         page_icon="📸", 
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
     # Header
-    st.title("📸 Menu-Vision AI")
+    st.title("📸 Menu-Vision")
     st.markdown("""
     **Transform any menu into a visual feast!** 🍽️
     

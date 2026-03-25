@@ -8,9 +8,10 @@ SYSTEM_PROMPT = """
 You are MenuVisionAI, an expert at reading restaurant menus and creating detailed food imagery prompts.
 
 Your task is to:
-1. Analyze the menu image and extract each dish
-2. Create a detailed image generation prompt for each dish
-3. Return everything in a structured JSON format
+1. Identify the overall aesthetic and style of the restaurant from the menu's design, name, and cuisine type
+2. Analyze the menu image and extract each dish
+3. Create a detailed image generation prompt for each dish
+4. Return everything in a structured JSON format
 
 For each menu item, extract:
 - "name": The exact name of the dish from the menu
@@ -35,21 +36,24 @@ For the image prompt, create a professional food photography description that in
 Example image prompt format:
 "Professional food photography of [dish name]. [Description of ingredients and preparation]. Beautifully plated on a white ceramic plate, shot from a 45-degree angle with soft natural lighting. Garnished elegantly, with a clean restaurant background. High-resolution, appetizing, and cinematic presentation."
 
-Return ONLY a valid JSON array in this exact format:
-[
-  {
-    "name": "Dish name",
-    "description": "Brief description or empty string",
-    "price": "Price or empty string",
-    "ingredients": ["ingredient1", "ingredient2", "ingredient3"],
-    "tags": ["flavor_tag", "ingredient_tag", "cuisine_tag"],
-    "prompt": "Detailed image generation prompt",
-    "estimated_calories": 650,
-    "protein_g": 35,
-    "carbs_g": 55,
-    "fat_g": 28
-  }
-]
+Return ONLY a valid JSON object in this exact format:
+{
+  "restaurant_style": "A concise 5-10 word description of the restaurant's visual aesthetic and vibe (e.g., 'rustic Italian trattoria with warm earthy tones', 'sleek modern sushi bar with minimalist dark aesthetic', 'bright casual American diner with retro styling')",
+  "items": [
+    {
+      "name": "Dish name",
+      "description": "Brief description or empty string",
+      "price": "Price or empty string",
+      "ingredients": ["ingredient1", "ingredient2", "ingredient3"],
+      "tags": ["flavor_tag", "ingredient_tag", "cuisine_tag"],
+      "prompt": "Detailed image generation prompt",
+      "estimated_calories": 650,
+      "protein_g": 35,
+      "carbs_g": 55,
+      "fat_g": 28
+    }
+  ]
+}
 
 Important rules:
 - Do NOT include price information in the image prompt
@@ -59,26 +63,26 @@ Important rules:
 - If no price exists, leave as empty string
 - Always include proper garnishing and presentation details in prompts
 - Nutrition estimates should be realistic based on typical restaurant portion sizes
-- Return ONLY the JSON array, no markdown formatting or additional text
+- Return ONLY the JSON object, no markdown formatting or additional text
 """
 
 def _extract_menu_items(contents):
     """
     Internal helper to call the Gemini API and extract menu items.
-    
+
     Args:
         contents: The contents to send to the Gemini API (list or string).
-        
+
     Returns:
-        list: List of dictionaries containing menu items, or empty list on failure.
+        tuple: (restaurant_style: str, items: list) or ("", []) on failure.
     """
     try:
         api_key = os.getenv('GOOGLE_API_KEY')
         if not api_key:
             raise ValueError("Google API Key not found. Please set the GOOGLE_API_KEY environment variable.")
-        
+
         client = genai.Client(api_key=api_key)
-        
+
         # Generate response using Gemini 2.5 Flash with structured JSON output
         response = client.models.generate_content(
             model='gemini-2.5-flash',
@@ -87,53 +91,59 @@ def _extract_menu_items(contents):
                 response_mime_type="application/json"
             )
         )
-        
+
         # Parse the JSON response
         try:
-            menu_items = json.loads(response.text)
-            
-            # Validate the structure
+            data = json.loads(response.text)
+
+            # Validate wrapper structure
+            if not isinstance(data, dict) or 'items' not in data or 'restaurant_style' not in data:
+                raise ValueError("Response is not a valid wrapper object with 'restaurant_style' and 'items'")
+
+            restaurant_style = data.get('restaurant_style', '')
+            menu_items = data['items']
+
             if not isinstance(menu_items, list):
-                raise ValueError("Response is not a JSON array")
-            
+                raise ValueError("'items' is not a JSON array")
+
+            required_fields = ['name', 'description', 'price', 'ingredients', 'tags', 'prompt',
+                               'estimated_calories', 'protein_g', 'carbs_g', 'fat_g']
             for item in menu_items:
-                required_fields = ['name', 'description', 'price', 'ingredients', 'tags', 'prompt',
-                                   'estimated_calories', 'protein_g', 'carbs_g', 'fat_g']
                 if not all(field in item for field in required_fields):
                     raise ValueError(f"Missing required fields in menu item: {item}")
-            
-            return menu_items
-            
+
+            return restaurant_style, menu_items
+
         except json.JSONDecodeError as e:
             print(f"Failed to parse JSON response: {e}")
             print(f"Raw response: {response.text}")
-            return []
-            
+            return "", []
+
     except Exception as e:
         print(f"Error extracting menu items: {e}")
-        return []
+        return "", []
 
 def extract_menu_items_from_image(image_data):
     """
     Extracts menu items from an uploaded image using Google Gemini 2.5 Flash.
-    
+
     Args:
         image_data: PIL Image object or image bytes
-        
+
     Returns:
-        list: List of dictionaries containing name, description, price, and prompt for each menu item
+        tuple: (restaurant_style: str, items: list)
     """
     return _extract_menu_items([SYSTEM_PROMPT, image_data])
 
 def extract_menu_items_from_text(menu_text):
     """
     Extracts menu items from plain text using Google Gemini 2.5 Flash.
-    
+
     Args:
         menu_text: String containing the menu text
-        
+
     Returns:
-        list: List of dictionaries containing name, description, price, and prompt for each menu item
+        tuple: (restaurant_style: str, items: list)
     """
     text_prompt = f"{SYSTEM_PROMPT}\n\nHere is the menu text to analyze:\n{menu_text}"
-    return _extract_menu_items(text_prompt) 
+    return _extract_menu_items(text_prompt)
